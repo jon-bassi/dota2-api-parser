@@ -23,7 +23,7 @@ public class Dota2
    }
    
    
-   private void parseManyMatches() throws IOException
+   public void parseManyMatches() throws IOException
    {
       String url = MATCH_HISTORY_BASE_URL;
       url += API_KEY;
@@ -42,12 +42,12 @@ public class Dota2
       }
    }
    
-   private void parseNextManyMatches() throws IOException, InterruptedException
+   public void parseNextManyMatches() throws IOException, InterruptedException
    {
       Thread.sleep(1500);
    }
    
-   private static void parseSingleMatch(Integer matchID) throws IOException, InterruptedException
+   public static void parseSingleMatch(Integer matchID) throws IOException, InterruptedException
    {
       /*
       Thread.sleep(1500);
@@ -82,19 +82,4 @@ public class Dota2
       page = page.replaceAll("[\\[\\{\"\\}\\]\n/<> ]", "");
       return page.replace("body","");
    }
-   
-   public static void main(String[] args) throws IOException, InterruptedException
-   {
-      // replace <API KEY> with your unique key
-      Dota2 parser = new Dota2("<API KEY>");
-      System.out.println("start");
-      parser.parseManyMatches();
-      System.out.println("done");
-      System.out.println(parser.matchIDs);
-      for (int i = 0; i < parser.matchIDs.size(); i++)
-      {
-         parseSingleMatch(parser.matchIDs.get(i));
-      }
-   }
-   
 }
