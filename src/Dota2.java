@@ -5,41 +5,92 @@ import org.jsoup.select.Elements;
 import java.util.ArrayList;
 import java.io.IOException;
 
+/**
+ * note: all requests to the web api must be at least one second apart, 
+ * I've set it to 1.5 seconds to in this program as to not risk a 503 error
+ * @author jon-bassi
+ *
+ */
 public class Dota2
 {
    
-   public final String API_KEY;
+   private final String API_KEY;
    
-   public final String MATCH_HISTORY_BASE_URL =
+   private final String MATCH_HISTORY_BASE_URL =
          "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?key=";
-   public final String MATCH_INFO_BASE_URL =
+   private final String MATCH_INFO_BASE_URL =
          "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=";
+   // parse options
+   private int gamemode, minPlayers;
    
    public ArrayList<Integer> matchIDs = new ArrayList<Integer>();
    
-   public Dota2(String apiKey)
+   /**
+    * 
+    * @param apiKey
+    * @param gameMode 0-8 for different game modes, 9 if all
+    * @param minPlayers 0-10 for minimum number of players per game
+    */
+   public Dota2(String apiKey, int gamemode, int minPlayers)
    {
       API_KEY = apiKey;
+      this.gamemode = gamemode;
+      this.minPlayers = minPlayers;
    }
    
+   /**
+    * possible expressions:
+    *   match_id:
+    *   lobby_type:
+    *   start_time:
+    * @param pageSource source of page formatted as a String
+    * @param expression one of the above
+    */
+   private void parseStringFor(String pageSource, String expression)
+   {
+      int sizeOfData;
+      switch (expression)
+      {
+         case "match_id:" : sizeOfData = 10;
+            break;
+         default : sizeOfData = 0;
+            break;
+      }
+      while(pageSource.contains(expression))
+      {
+         pageSource = pageSource.substring(pageSource.indexOf(expression) + 9);
+         matchIDs.add(Integer.parseInt(pageSource.substring(0, sizeOfData)));
+      }
+   }
+   
+   private String addOptionsToURL(String url,int gamemode, int minPlayers)
+   {
+      return url + "&game_mode=" + gamemode + "&min_players=" + minPlayers;
+   }
+   
+   /**
+    * Converts webpage from document to a string representation, removes 
+    * unnecessary delimiters
+    * @param doc webpage to convert
+    * @return String representation of webpage
+    */
+   private String convertToString(Document doc)
+   {
+      Elements results = doc.select("body");
+      String page = results.get(0).toString();
+      page = page.replaceAll("[\\[\\{\"\\}\\]\n/<> ]", "");
+      return page.replace("body","");
+   }
    
    public void parseManyMatches() throws IOException
    {
       String url = MATCH_HISTORY_BASE_URL;
       url += API_KEY;
-      url = addOptionsToURL(url,0,10);
+      url = addOptionsToURL(url,gamemode,minPlayers);
       Document doc = Jsoup.connect(url).ignoreContentType(true).get();
       
       String page = convertToString(doc);
-      
-      int i = 0;
-      while(page.contains("match_id"))
-      {
-         System.out.println(i++);
-         page = page.substring(page.indexOf("match_id:") + 9);
-         //System.out.println(page);
-         matchIDs.add(Integer.parseInt(page.substring(0, 10)));
-      }
+      parseStringFor(page,"match_id:");
    }
    
    public void parseNextManyMatches() throws IOException, InterruptedException
@@ -55,31 +106,5 @@ public class Dota2
       url += matchID;
       url += "key=" + API_KEY;
       */
-   }
-   
-   /**
-    * possible expressions:
-    * match_id:
-    * lobby_type:
-    * start_time:
-    * @param expression one of the above
-    */
-   private void parseStringFor(String expression) throws IOException, InterruptedException
-   {
-      
-      
-   }
-   
-   private String addOptionsToURL(String url,int gamemode, int minPlayers)
-   {
-      return url + "&game_mode=" + gamemode + "&min_players=" + minPlayers;
-   }
-   
-   private String convertToString(Document doc)
-   {
-      Elements results = doc.select("body");
-      String page = results.get(0).toString();
-      page = page.replaceAll("[\\[\\{\"\\}\\]\n/<> ]", "");
-      return page.replace("body","");
    }
 }
