@@ -14,3 +14,5 @@ hs_err_pid*
 # misc
 .settings/
 *.txt
+
+src/Parse.java
