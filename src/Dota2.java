@@ -13,11 +13,13 @@ import java.io.IOException;
  */
 public class Dota2
 {
-   
+   // your unique API key
    private final String API_KEY;
    
+   // base url for looking at recent matches
    private final String MATCH_HISTORY_BASE_URL =
          "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?key=";
+   // base url for looking at one specific match
    private final String MATCH_INFO_BASE_URL =
          "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=";
    // parse options
@@ -25,6 +27,8 @@ public class Dota2
    private int minPlayers = -1;
    private int startAtMatch = -1;
    
+   // stores match IDs of parsed matches
+   // note: change this to hash set later
    public ArrayList<Integer> matchIDs = new ArrayList<Integer>();
    
    /**
@@ -63,6 +67,11 @@ public class Dota2
       }
    }
    
+   /**
+    * modifies our url to parse for specific types of matches
+    * @param url base url (match history)
+    * @return modified url for parsing specific types of matches
+    */
    private String addOptionsToURL(String url)
    {
       switch (gamemode)
@@ -169,12 +178,7 @@ public class Dota2
       }
    }
    
-   public void parseNextManyMatches() throws IOException, InterruptedException
-   {
-      Thread.sleep(1500);
-   }
-   
-   public void parseSingleMatch(Integer matchID) throws IOException, InterruptedException
+   public void parseSingleMatch(int matchID) throws IOException, InterruptedException
    {
       /*
       Thread.sleep(1500);
