@@ -23,18 +23,26 @@ public class Dota2
    private final String MATCH_INFO_BASE_URL =
          "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=";
    // parse options
-   private int gamemode = -1;
+   private int gameMode = -1;
+   private int lobbyType = -1;
    private int minPlayers = -1;
    private int startAtMatch = -1;
+   
+   private int duration;
+   
+   private boolean goodMatch = false;
    
    // stores match IDs of parsed matches
    // note: change this to hash set later
    public ArrayList<Integer> matchIDs = new ArrayList<Integer>();
+   public ArrayList<Integer> goodMatchIDs = new ArrayList<Integer>();
+   
+   public ArrayList<Integer> durations = new ArrayList<Integer>();
    
    /**
     * 
     * @param apiKey
-    * @param gameMode 0-8 for different game modes, 9 if all
+    * @param lobbyType 0-8 for different game modes, 9 if all
     * @param minPlayers 0-10 for minimum number of players per game
     */
    public Dota2(String apiKey)
@@ -57,13 +65,25 @@ public class Dota2
       {
          case "match_id:" : sizeOfData = 10;
             break;
+         case "duration:" : sizeOfData = pageSource.substring(pageSource.indexOf(expression)
+               ,pageSource.indexOf(",",pageSource.indexOf(expression))).length()
+               - expression.length();
+            break;
          default : sizeOfData = 0;
             break;
       }
       while(pageSource.contains(expression))
       {
-         pageSource = pageSource.substring(pageSource.indexOf(expression) + 9);
-         matchIDs.add(Integer.parseInt(pageSource.substring(0, sizeOfData)));
+         pageSource = pageSource.substring(pageSource.indexOf(expression) 
+               + expression.length());
+         if (expression.equals("match_id:"))
+            matchIDs.add(Integer.parseInt(pageSource.substring(0, sizeOfData)));
+         else if (expression.equals("duration:"))
+         {
+            duration = Integer.parseInt(pageSource.substring(0, sizeOfData));
+            if (duration > 1800)
+               goodMatch = true;
+         }
       }
    }
    
@@ -74,11 +94,17 @@ public class Dota2
     */
    private String addOptionsToURL(String url)
    {
-      switch (gamemode)
+      switch (gameMode)
       {
       case -1 :
          break;
-      default : url += "&game_mode=" + gamemode;
+      default : url += "&game_mode=" + gameMode;
+      }
+      switch (lobbyType)
+      {
+      case -1 :
+         break;
+      default : url += "&lobby_type=" + lobbyType;
       }
       switch (minPlayers)
       {
@@ -115,9 +141,19 @@ public class Dota2
     * (note: default is set to parse all game modes)
     * @param type the game mode to parse for
     */
-   public void setGameMode(int gamemode)
+   public void setGameMode(int gameMode)
    {
-      this.gamemode = gamemode;
+      this.gameMode = gameMode;
+   }
+   
+   /**
+    * sets the game mode to parse for, set to -1 to parse all modes
+    * (note: default is set to parse all game modes)
+    * @param type the game mode to parse for
+    */
+   public void setLobbyType(int lobbyType)
+   {
+      this.lobbyType = lobbyType;
    }
    
    /**
@@ -147,10 +183,11 @@ public class Dota2
     */
    public void getMatchIDs() throws IOException, InterruptedException
    {
-      Thread.sleep(1500);
+      Thread.sleep(1000);
       String url = MATCH_HISTORY_BASE_URL;
       url += API_KEY;
       url = addOptionsToURL(url);
+      System.out.println(url);
       Document doc = Jsoup.connect(url).ignoreContentType(true).get();
       
       String page = convertToString(doc);
@@ -166,25 +203,39 @@ public class Dota2
    {
       String url = MATCH_HISTORY_BASE_URL;
       url += API_KEY;
+      url = addOptionsToURL(url);
+      setMinPlayers(-1);
       for (int i = 0; i < matches/100; i++)
       {
          System.out.println(i+ 1);
          url = addOptionsToURL(url);
+         System.out.println(url);
          Document doc = Jsoup.connect(url).ignoreContentType(true).get();
          String page = convertToString(doc);
          parseStringFor(page,"match_id:");
          setStartMatch(matchIDs.get(matchIDs.size()-1));
-         Thread.sleep(1500);
+         Thread.sleep(1000);
       }
    }
    
-   public void parseSingleMatch(int matchID) throws IOException, InterruptedException
+   public void parseSingleMatch(Integer matchID) throws IOException, InterruptedException
    {
-      /*
-      Thread.sleep(1500);
+      Thread.sleep(1000);
+      
       String url = MATCH_INFO_BASE_URL;
       url += matchID;
-      url += "key=" + API_KEY;
-      */
+      url += "&key=" + API_KEY;
+      
+      Document doc = Jsoup.connect(url).ignoreContentType(true).get();
+      
+      String page = convertToString(doc);
+      
+      //System.out.println(page);
+      
+      parseStringFor(page,"duration:");
+      
+      if (goodMatch)
+         goodMatchIDs.add(matchID);
+      goodMatch = false;
    }
 }
